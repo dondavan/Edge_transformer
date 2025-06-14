@@ -1,0 +1,1 @@
+docker exec -it transformer_py_tf bash
