@@ -12,9 +12,14 @@ save_path = f"./data/{model_name}"
 if not os.path.isdir(save_path):
    os.makedirs(save_path)
 
-print(model)
 
-print(model.encoder.layer[0].attention.self)
+vocabs = tokenizer.get_vocab()
+with open(f'{save_path}/vocab.txt', 'w') as vocab_file:
+    for vocab_dict in vocabs:
+        vocab_file.write(vocab_dict+" "+str(vocabs[vocab_dict])+"\n")
+
+vocab_file.close()
+
 # Embeddding
 layer_name = "token_embedding"
 np.save(f"./data/{model_name}/{layer_name}.npy",model.embeddings.word_embeddings.weight.detach().numpy())

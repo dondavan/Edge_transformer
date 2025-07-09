@@ -1,2 +1,4 @@
 /export_model/models
 /export_model/data
+/export_model/torch/models/
+/export_model/acl/data/
