@@ -7,6 +7,7 @@ from tvm.relax.frontend.torch import from_exported_program
 from transformers import GPT2Tokenizer, GPT2Model
 import tvm
 from tvm import relax
+from datetime import datetime
 
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -31,15 +32,17 @@ mod: tvm.IRModule = from_exported_program(exported_program)
 
 mod, params = relax.frontend.detach_params(mod)
 
-print(params)
-
 ### Run
-target = tvm.target.Target("llvm")
+target = tvm.target.arm_cpu()
 ex = tvm.compile(mod, target=target)
 dev = tvm.cpu()
 vm = relax.VirtualMachine(ex, dev)
 # Need to allocate data and params on GPU device
 gpu_data = tvm.nd.array(encoded_input['input_ids'].to(torch.float).detach(), dev)
+
+start_time = datetime.now()
 gpu_out = vm["main"](gpu_data)
+end_time = datetime.now()
+print('Duration: {}'.format(end_time - start_time))
 
 print(gpu_out)
