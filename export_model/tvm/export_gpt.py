@@ -33,14 +33,13 @@ mod: tvm.IRModule = from_exported_program(exported_program)
 mod, params = relax.frontend.detach_params(mod)
 
 ### Run
-target = tvm.target.arm_cpu()
+target = tvm.target.Target("llvm")
 ex = tvm.compile(mod, target=target)
 dev = tvm.cpu()
 vm = relax.VirtualMachine(ex, dev)
 # Need to allocate data and params on GPU device
-gpu_data = tvm.nd.array(encoded_input['input_ids'].to(torch.float).detach(), dev)
-
 start_time = datetime.now()
+gpu_data = tvm.nd.array(encoded_input['input_ids'].to(torch.float).detach(), dev)
 gpu_out = vm["main"](gpu_data)
 end_time = datetime.now()
 print('Duration: {}'.format(end_time - start_time))
