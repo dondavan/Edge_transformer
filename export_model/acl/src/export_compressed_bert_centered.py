@@ -106,9 +106,9 @@ def global_weight_clustering(model,cluster_numebr, B=1):
                 w=params.reshape(-1,B)
                 print(name, w.shape)
                 for i in range(len(w)):
-                    ww=np.array(kmeans.labels_[start_index])
-                    w[i]=torch.from_numpy(ww)
-                    start_index+=1
+                        ww=np.array(cluster_centers[kmeans.labels_[start_index]])
+                        w[i]=torch.from_numpy(ww)
+                        start_index+=1
                 cluster_list=w
                 reshape_size_tuple=tuple(param_shape)
                 cluster_list=torch.tensor(cluster_list,dtype=torch.float)
@@ -154,12 +154,12 @@ validation(compressed_bert, val_loader, device)
 print(cluster_centers)
 print(labels)
 
-save_directory = "../models/bert-clustered"
+save_directory = "../models/bert-clustered-centered"
 tokenizer.save_pretrained(save_directory)
 compressed_bert.save_pretrained(save_directory)
 
+
 cluster_centers_32 =cluster_centers.to(torch.float32)
-print(cluster_centers_32)
 np.save(f"{save_directory}/cluster_center.npy",cluster_centers_32.detach().numpy())
 
 ###################################################################################################################################
