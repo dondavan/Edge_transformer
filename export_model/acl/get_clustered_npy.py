@@ -38,7 +38,6 @@ np.save(f"{data_path}/{model_name}/{layer_name}.npy",model.pooler.dense.weight.d
 layer_name = "pooler_bias"
 np.save(f"{data_path}/{model_name}/{layer_name}.npy",model.pooler.dense.bias.detach().numpy())
 
-print(model.pooler.dense.weight.detach().numpy().astype(int))
 # Encoder
 for layer_num in range (0,12):
     save_path = f"{data_path}/{model_name}/layer_{layer_num}"
