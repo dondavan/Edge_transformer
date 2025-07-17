@@ -1,1 +1,0 @@
-sshpass -p 'khadas' scp -r models/ khadas@192.168.2.2:/home/khadas/torch/cmake-out/
