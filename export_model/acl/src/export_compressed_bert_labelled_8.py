@@ -16,6 +16,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 from sklearn.cluster import KMeans
 import copy
 import numpy as np
+import os
 
 # Load dataset
 dataset = load_dataset("glue", "sst2")
@@ -111,8 +112,9 @@ def global_weight_clustering(model,cluster_numebr, B=1):
                     start_index+=1
                 cluster_list=w
                 reshape_size_tuple=tuple(param_shape)
-                cluster_list=torch.tensor(cluster_list,dtype=torch.float16)
+                cluster_list=torch.tensor(cluster_list,dtype=torch.int8)
                 cluster_list=cluster_list.reshape(reshape_size_tuple)
+                params.requires_grad = False
                 params.data=cluster_list.data
   return cluster_centers , kmeans.labels_
  
@@ -149,17 +151,85 @@ number_blocks = 1
 
 print("Compressing model with global weight clustering...")
 cluster_centers, labels=global_weight_clustering(compressed_bert,number_of_clusters, B=number_blocks)
-validation(compressed_bert, val_loader, device)
+#validation(compressed_bert, val_loader, device)
 
 print(cluster_centers)
 print(labels)
 
-save_directory = "../models/bert-clustered-labelled-fp16"
+save_directory = "../models/bert-clustered-labelled-int8"
 tokenizer.save_pretrained(save_directory)
 compressed_bert.save_pretrained(save_directory)
 
 cluster_centers_32 =cluster_centers.to(torch.float32)
 np.save(f"{save_directory}/cluster_center.npy",cluster_centers_32.detach().numpy())
+
+
+
+model = compressed_bert
+
+data_path = "../data"
+save_model_name = "bert-clustered-labelled-int8"
+
+save_path = f"{data_path}/{save_model_name}"
+if not os.path.isdir(save_path):
+   os.makedirs(save_path)
+
+
+vocabs = tokenizer.get_vocab()
+with open(f'{save_path}/vocab.txt', 'w') as vocab_file:
+    for vocab_dict in vocabs:
+        vocab_file.write(vocab_dict+" "+str(vocabs[vocab_dict])+"\n")
+
+vocab_file.close()
+
+# Cluster Center
+np.save(f"{data_path}/{save_model_name}/cluster_center.npy",cluster_centers_32.detach().numpy())
+
+# Embeddding
+layer_name = "token_embedding"
+np.save(f"{data_path}/{save_model_name}/{layer_name}.npy",model.bert.embeddings.word_embeddings.weight.detach().numpy())
+layer_name = "segment_embedding"
+np.save(f"{data_path}/{save_model_name}/{layer_name}.npy",model.bert.embeddings.token_type_embeddings.weight.detach().numpy())
+layer_name = "positional_embedding"
+np.save(f"{data_path}/{save_model_name}/{layer_name}.npy",model.bert.embeddings.position_embeddings.weight.detach().numpy())
+
+# Pooler
+layer_name = "pooler_weight"
+np.save(f"{data_path}/{save_model_name}/{layer_name}.npy",model.bert.pooler.dense.weight.detach().numpy())
+layer_name = "pooler_bias"
+np.save(f"{data_path}/{save_model_name}/{layer_name}.npy",model.bert.pooler.dense.bias.detach().numpy())
+
+# Encoder
+for layer_num in range (0,12):
+    save_path = f"{data_path}/{save_model_name}/layer_{layer_num}"
+    if not os.path.isdir(save_path):
+        os.makedirs(save_path)
+    
+    layer_name = "query_weight"
+    np.save(f"{data_path}/{save_model_name}/layer_{layer_num}/{layer_name}.npy",model.bert.encoder.layer[layer_num].attention.self.query.weight.detach().numpy())
+    layer_name = "query_bias"
+    np.save(f"{data_path}/{save_model_name}/layer_{layer_num}/{layer_name}.npy",model.bert.encoder.layer[layer_num].attention.self.query.bias.detach().numpy())
+
+    layer_name = "key_weight"
+    np.save(f"{data_path}/{save_model_name}/layer_{layer_num}/{layer_name}.npy",model.bert.encoder.layer[layer_num].attention.self.key.weight.detach().numpy())
+    layer_name = "key_bias"
+    np.save(f"{data_path}/{save_model_name}/layer_{layer_num}/{layer_name}.npy",model.bert.encoder.layer[layer_num].attention.self.key.bias.detach().numpy())
+
+    layer_name = "value_weight"
+    np.save(f"{data_path}/{save_model_name}/layer_{layer_num}/{layer_name}.npy",model.bert.encoder.layer[layer_num].attention.self.value.weight.detach().numpy())
+    layer_name = "value_bias"
+    np.save(f"{data_path}/{save_model_name}/layer_{layer_num}/{layer_name}.npy",model.bert.encoder.layer[layer_num].attention.self.value.bias.detach().numpy())
+
+
+    layer_name = "ff_weight_0"
+    np.save(f"{data_path}/{save_model_name}/layer_{layer_num}/{layer_name}.npy",model.bert.encoder.layer[layer_num].intermediate.dense.weight.detach().numpy())
+    layer_name = "ff_bias_0"
+    np.save(f"{data_path}/{save_model_name}/layer_{layer_num}/{layer_name}.npy",model.bert.encoder.layer[layer_num].intermediate.dense.bias.detach().numpy())
+
+    layer_name = "ff_weight_1"
+    np.save(f"{data_path}/{save_model_name}/layer_{layer_num}/{layer_name}.npy",model.bert.encoder.layer[layer_num].output.dense.weight.detach().numpy())
+    layer_name = "ff_bias_1"
+    np.save(f"{data_path}/{save_model_name}/layer_{layer_num}/{layer_name}.npy",model.bert.encoder.layer[layer_num].output.dense.bias.detach().numpy())
 
 ###################################################################################################################################
 # Optimizer and scheduler
